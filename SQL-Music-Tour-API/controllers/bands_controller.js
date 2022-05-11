@@ -2,7 +2,9 @@
 const { Op } = require('sequelize')
 const bands = require('express').Router()
 const db = require('../models')
-const { Band } = db 
+const event = require('../models/event')
+const meetgreet = require('../models/meetgreet')
+const { Band, MeetGreet, Event, SetTime } = db 
 
 //ROUTES v
 //1. GET ALL BANDS
@@ -21,16 +23,32 @@ bands.get('/', async (req, res) => {
 })
 
 //2. GET ONE BAND
-bands.get('/:id', async (req, res) => {
+bands.get('/:name', async (req, res) => {
     try {
         const foundBand = await Band.findOne({
-            where: {band_id: req.params.id}
+            where: { name: req.params.name },
+            include: [
+                { model: MeetGreet,
+                    as: "meet_greets",
+                    include: { model: Event, 
+                    as: "event"},
+                    where: { name: { [Op.like]: `%${req.query.event ? req.query.event : ''}%` } }
+                },
+                {
+                    model: SetTime,
+                    as: "set_times",
+                    include: {model: Event, 
+                    as: "event"},
+                    where: { name: { [Op.like]: `%${req.query.event ? req.query.event : ''}%` } }
+                }
+            ]
         })
         res.status(200).json(foundBand)
     } catch (error) {
         res.status(500).json(error)
     }
 })
+
 //3. ADD A BAND
 bands.post('/', async (req, res) => {
     try {
